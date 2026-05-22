@@ -1,58 +1,45 @@
-# Road Accident Detection & Automatic Emergency Response System 🚗🚨
+# 🚗🚨 Road Accident Detection Application (ELI5 Edition!)
 
-An Android application built with **Kotlin** and **Jetpack Compose** designed to improve road safety. The app utilizes the smartphone's built-in accelerometer sensor to detect severe impacts indicating a potential vehicle accident. Once triggered, it launches an emergency protocol to automatically send SOS alerts containing live GPS tracking links to preset emergency contacts.
+Welcome to the **Road Accident Detection App**!
+
+This is a special version of the app where the code and this explanation are written so simply that almost anyone can understand how it works—like explaining it to a 5-year-old (ELI5)!
+
+## 🦸‍♂️ What does this app do?
+
+Imagine you are driving a car. This app acts like a tiny, invisible superhero sitting in your phone. Its only job is to make sure you are safe.
+
+If the superhero feels the car stop *very* suddenly (like in a crash), it automatically grabs its walkie-talkie and texts your friends and family to say, *"Help! I think there was a crash! Here is exactly where we are on the map!"*
+
+## 🧩 How does it work? (The Secret Pieces)
+
+The app is built using **Kotlin** (a language computers understand) and **Jetpack Compose** (a way to draw the buttons and screens). We have broken the app down into three main helpers:
+
+1. **The Watch Guard (`AccidentDetector.kt`)**
+   - The phone has a tiny tool inside it called an *accelerometer*. It can feel movement. The Watch Guard holds this tool and pays close attention. If the movement is too violent, the Watch Guard yells, "ALARM!"
+
+2. **The Emergency Dispatcher (`EmergencyManager.kt`)**
+   - When the Watch Guard yells "ALARM!", the Dispatcher wakes up. First, it asks the phone for a map to find out exactly where you are. Then, it silently sends text messages (SMS) to the emergency contacts you saved, asking for help.
+
+3. **The Background Worker (`AccidentDetectionService.kt`)**
+   - You don't want to keep your phone screen on all the time while driving. The Background Worker's job is to stay awake even when the app is closed. It keeps the Watch Guard active in the background so you are always protected.
+
+## 🛠️ Features
+
+*   **Automatic Crash Detection:** Feels big bumps and crashes automatically.
+*   **Live GPS Location:** Sends a Google Maps link to your friends so they can find you.
+*   **Manual SOS Button:** A big red button you can press yourself if you need help and the phone didn't feel it.
+*   **Incident History:** A diary that remembers every time the alarm went off.
+*   **Adjustable Sensitivity:** You can tell the Watch Guard to be very sensitive (for bumpy roads) or less sensitive (for smooth roads).
+
+## 🚀 How to build and run the app
+
+If you want to put this app on your phone, follow these steps:
+
+1. Open this folder in a program called **Android Studio** (it's a tool for making apps).
+2. Let Android Studio load all the pieces (this takes a minute).
+3. Plug your Android phone into your computer with a cable.
+4. Press the big green **Play button** (▶️) at the top of Android Studio.
+5. The app will magicaly appear on your phone!
 
 ---
-
-## 🌟 Features
-
-* 🏃 **Background Monitoring:** Runs as an Android Foreground Service to maintain safety tracking even when the app is minimized or the phone is locked.
-* 📐 **Intelligent Impact Detection:** Real-time multi-axis ($X, Y, Z$) accelerometer tracking utilizing combined vector magnitude calculation to isolate major impact forces.
-* ⏱️ **Smart SOS Countdown:** An automated warning dialog with a customizable delay timer and haptic vibration feedback, allowing users to safely cancel false alarms.
-* 📍 **High-Accuracy Live Location:** Integrates Google Play Services Location API to capture precise real-time coordinates.
-* 💬 **Background SMS Dispatch:** Automatically formats and transmits localized SOS messages containing clickable Google Maps links completely in the background.
-* ⚙️ **Customizable Sensitivity:** Configurable impact thresholds (High, Medium, Low) to tailor detection accuracy to different driving styles and vehicular environments.
-* 📋 **Incident Ledger:** Keeps a fully local, persistent history of all detected incidents, manual SOS triggers, and emergency statuses.
-
----
-
-## 🛠️ Architecture & Core Components
-
-The application is modularized into dedicated structural components handling hardware tracking, UI states, and system notifications:
-
-| Component | Responsibility |
-| :--- | :--- |
-| **`MainActivity.kt`** | Manages application lifecycle, multi-screen runtime permission requests, persistent local database states, and the modern Jetpack Compose UI layout. |
-| **`AccidentDetectionService.kt`** | An independent Foreground Service ensuring uninterrupted background physical sensor telemetry. |
-| **`AccidentDetector.kt`** | Implements `SensorEventListener` to parse raw accelerometer readings and filter micro-spikes via a 30-second localized cooldown loop. |
-| **`EmergencyManager.kt`** | Interacts with the fused location provider client and manages programmatic multi-part SMS configurations. |
-
----
-
-## 📡 Hardware Telemetry Calculation
-
-The hardware sensor layer utilizes the physics distance formula to monitor absolute velocity changes across all 3 spatial planes:
-
-$$\text{Force Amplitude} = \sqrt{x^2 + y^2 + z^2}$$
-
-If the total calculated amplitude crosses the user-specified threshold, the app triggers the safety pipeline.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-* Android Studio Ladybug or newer
-* Android SDK 34 (Compiled & Targeted)
-* A physical Android device equipped with a functional Accelerometer sensor and an active cellular SIM card (required for background SMS dispatch)
-
-### Required Permissions
-To ensure full operational functionality, the application requests the following runtime Android permissions:
-* `Manifest.permission.ACCESS_FINE_LOCATION` & `ACCESS_COARSE_LOCATION` (Satellite mapping accuracy)
-* `Manifest.permission.SEND_SMS` (Automated messaging capabilities)
-* `Manifest.permission.POST_NOTIFICATIONS` (Foreground Service visibility standard for Android 13+)
-
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone [https://github.com/mdmehfoozalam/road-accident-detection-application.git](https://github.com/mdmehfoozalam/road-accident-detection-application.git)
+*Stay safe out there!* 🚗🛡️
