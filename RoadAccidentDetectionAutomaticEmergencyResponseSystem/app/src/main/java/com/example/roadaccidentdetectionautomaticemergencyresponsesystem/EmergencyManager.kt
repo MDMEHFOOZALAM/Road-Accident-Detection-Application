@@ -13,88 +13,133 @@ import android.net.Uri
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 
-class EmergencyManager(private val context: Context) {
+/**
+ * EmergencyManager is like an emergency dispatcher.
+ * When an accident happens, its job is to find out where you are (your location)
+ * and send text messages (SMS) to your emergency contacts to ask for help!
+ */
+class EmergencyManager(private val appContext: Context) {
 
-    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+    // A tool from Google to figure out exactly where the phone is on the map right now.
+    private val locationFinder = LocationServices.getFusedLocationProviderClient(appContext)
 
+    /**
+     * "Start the emergency protocol!"
+     * This function is called when a crash is detected. It takes a list of phone numbers.
+     */
     @SuppressLint("MissingPermission")
-    fun triggerEmergency(phoneNumbers: List<String>) {
-        if (phoneNumbers.isEmpty()) {
+    fun triggerEmergency(emergencyPhoneNumbers: List<String>) {
+
+        // If we don't have any phone numbers to call, we can't do anything! So we stop.
+        if (emergencyPhoneNumbers.isEmpty()) {
             Log.w("EmergencyManager", "No phone numbers provided")
             return
         }
 
-        // Check permission again just in case
-        if (ContextCompat.checkSelfPermission(context, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
+        // Before sending messages, we must ask the phone: "Do we have permission to send SMS text messages?"
+        // If the answer is no, we stop and log an error.
+        if (ContextCompat.checkSelfPermission(appContext, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
             Log.e("EmergencyManager", "SEND_SMS permission not granted")
             return
         }
 
-        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
-            .addOnSuccessListener { location ->
-                val message = if (location != null) {
-                    "🚨 EMERGENCY! Accident detected.\nLocation: https://maps.google.com/?q=${location.latitude},${location.longitude}"
+        // We ask the location finder to get our exact location as accurately as possible.
+        locationFinder.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+            .addOnSuccessListener { exactLocation ->
+
+                // If it successfully finds our location...
+
+                // Create the text message.
+                val textMessage = if (exactLocation != null) {
+                    // We found the location! Create a message with a Google Maps link.
+                    "🚨 EMERGENCY! Accident detected.\nLocation: https://maps.google.com/?q=${exactLocation.latitude},${exactLocation.longitude}"
                 } else {
+                    // We couldn't find the exact location, so we send a message without it.
                     "🚨 EMERGENCY! Accident detected. Location unavailable."
                 }
 
-                Log.d("EmergencyManager", "Preparing to send SMS to ${phoneNumbers.size} contacts")
-                // Send SMS to all contacts
-                phoneNumbers.forEach { number ->
-                    Log.d("EmergencyManager", "Triggering background SMS for: $number")
-                    sendSms(number, message)
+                Log.d("EmergencyManager", "Preparing to send SMS to ${emergencyPhoneNumbers.size} contacts")
+
+                // Go through every phone number in our list and send them the message.
+                emergencyPhoneNumbers.forEach { phoneNumber ->
+                    Log.d("EmergencyManager", "Triggering background SMS for: $phoneNumber")
+                    sendSmsMessage(phoneNumber, textMessage)
                 }
             }
-            .addOnFailureListener { e ->
-                Log.e("EmergencyManager", "Location fetch failed", e)
+            .addOnFailureListener { exception ->
+                // Uh oh, the location finder failed completely!
+                Log.e("EmergencyManager", "Location fetch failed", exception)
+
+                // We still want to ask for help, so we create a fallback message without the location.
                 val fallbackMessage = "🚨 EMERGENCY! Accident detected. Location failed."
-                phoneNumbers.forEach { number ->
-                    sendSms(number, fallbackMessage)
+
+                // Go through every phone number in our list and send them the fallback message.
+                emergencyPhoneNumbers.forEach { phoneNumber ->
+                    sendSmsMessage(phoneNumber, fallbackMessage)
                 }
             }
     }
 
-    private fun shareToMessageApp(message: String) {
+    /**
+     * This function opens up the phone's messaging app with a message ready to send.
+     * We don't actually use it for the automatic alerts, but it's here as a backup tool!
+     */
+    private fun shareToMessageApp(textMessage: String) {
         try {
-            val intent = Intent(Intent.ACTION_SENDTO).apply {
-                data = Uri.parse("smsto:") // This ensures only SMS apps handle this
-                putExtra("sms_body", message)
+            // "Intent" means "Intention". We are creating an intention to send something.
+            val intention = Intent(Intent.ACTION_SENDTO).apply {
+                data = Uri.parse("smsto:") // This tells the phone to open an SMS messaging app.
+                putExtra("sms_body", textMessage) // We give the app the text message.
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(intent)
-        } catch (e: Exception) {
-            Log.e("EmergencyManager", "Sharing to messaging app failed", e)
+            // Start the messaging app!
+            appContext.startActivity(intention)
+        } catch (exception: Exception) {
+            Log.e("EmergencyManager", "Sharing to messaging app failed", exception)
         }
     }
 
-    private fun sendSms(phoneNumber: String, message: String) {
+    /**
+     * This is the function that actually sends the text message silently in the background.
+     */
+    private fun sendSmsMessage(phoneNumber: String, textMessage: String) {
         try {
-            val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                context.getSystemService(SmsManager::class.java)
+            // First, get the phone's SMS manager (the part of the phone that handles text messages).
+            // The way we ask for it is slightly different depending on how new the phone's software is.
+            val messageManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                appContext.getSystemService(SmsManager::class.java)
             } else {
                 @Suppress("DEPRECATION")
                 SmsManager.getDefault()
             }
 
-            val cleanNumber = phoneNumber.replace(Regex("[^0-9+]"), "")
-            val formattedNumber = if (cleanNumber.startsWith("+")) {
-                cleanNumber
-            } else if (cleanNumber.length == 10) {
-                "+91$cleanNumber"
+            // Remove any spaces, dashes, or weird characters from the phone number so it's just numbers and maybe a plus sign (+).
+            val cleanPhoneNumber = phoneNumber.replace(Regex("[^0-9+]"), "")
+
+            // Format the phone number to make sure it works in India (by adding +91 if needed).
+            val perfectlyFormattedNumber = if (cleanPhoneNumber.startsWith("+")) {
+                cleanPhoneNumber
+            } else if (cleanPhoneNumber.length == 10) {
+                "+91$cleanPhoneNumber"
             } else {
-                cleanNumber
+                cleanPhoneNumber
             }
 
-            val parts = smsManager?.divideMessage(message)
-            if (parts != null && smsManager != null) {
-                smsManager.sendMultipartTextMessage(formattedNumber, null, parts, null, null)
-                Log.d("EmergencyManager", "Multi-part SMS sent successfully to $formattedNumber")
+            // Sometimes a message is too long to send as one piece. We ask the manager to divide it up.
+            val messageParts = messageManager?.divideMessage(textMessage)
+
+            // If the message had to be divided into parts, send all the parts together.
+            if (messageParts != null && messageManager != null) {
+                messageManager.sendMultipartTextMessage(perfectlyFormattedNumber, null, messageParts, null, null)
+                Log.d("EmergencyManager", "Multi-part SMS sent successfully to $perfectlyFormattedNumber")
             } else {
-                smsManager?.sendTextMessage(formattedNumber, null, message, null, null)
-                Log.d("EmergencyManager", "SMS sent successfully to $formattedNumber")
+                // If it's short enough, just send it as one single message.
+                messageManager?.sendTextMessage(perfectlyFormattedNumber, null, textMessage, null, null)
+                Log.d("EmergencyManager", "SMS sent successfully to $perfectlyFormattedNumber")
             }
-        } catch (e: Exception) {
-            Log.e("EmergencyManager", "SMS sending failed for $phoneNumber", e)
+        } catch (exception: Exception) {
+            // If something goes completely wrong while trying to send the text message, record the error.
+            Log.e("EmergencyManager", "SMS sending failed for $phoneNumber", exception)
         }
     }
 }

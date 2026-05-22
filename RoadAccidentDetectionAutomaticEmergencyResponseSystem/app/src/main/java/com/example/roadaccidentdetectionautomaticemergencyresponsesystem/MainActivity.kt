@@ -68,6 +68,10 @@ enum class Screen {
     History
 }
 
+/**
+ * MainActivity is the main screen of the app. It shows the dashboard,
+ * history, and settings screens. It also starts the background worker.
+ */
 class MainActivity : ComponentActivity() {
 
     private lateinit var emergencyManager: EmergencyManager
@@ -221,9 +225,12 @@ class MainActivity : ComponentActivity() {
                                                     Toast.makeText(this@MainActivity, "No contacts saved!", Toast.LENGTH_SHORT).show()
                                                 } else {
                                                     emergencyManager.triggerEmergency(contacts.map { it.phone })
-                                                    val sdf = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
-                                                    val currentDate = sdf.format(java.util.Date())
-                                                    saveIncidents(this@MainActivity, incidents + Incident(currentDate, "Manual SOS", "Sent"))
+                                                    // A tool to write the date and time in a nice way.
+                                                    val timeFormatter = java.text.SimpleDateFormat("dd MMM yyyy, HH:mm", java.util.Locale.getDefault())
+                                                    // Get the current date and time right now.
+                                                    val dateAndTimeRightNow = timeFormatter.format(java.util.Date())
+                                                    // Add this manual SOS to the history book.
+                                                    saveIncidents(this@MainActivity, incidents + Incident(dateAndTimeRightNow, "Manual SOS", "Sent"))
                                                     incidents = loadIncidents(this@MainActivity)
                                                     showSuccess = true
                                                 }
